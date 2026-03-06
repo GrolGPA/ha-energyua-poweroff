@@ -6,5 +6,5 @@
   "documentation": "https://www.zoe.com.ua/outage/",
   "requirements": ["beautifulsoup4", "requests"],
   "iot_class": "cloud_polling",
-  "codeowners": ["pavlo.havrikov@gmail.com"]
+  "codeowners": ["gpolbox@gmail.com"]
 }

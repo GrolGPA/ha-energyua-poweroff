@@ -16,7 +16,7 @@
 
 1. Відкрийте HACS у Home Assistant
 2. Натисніть **Інтеграції** → меню ⋮ → **Користувацькі репозиторії**
-3. Додайте URL репозиторію: `https://github.com/pavlo-havrikov/energyua-poweroff`
+3. Додайте URL репозиторію: `https://github.com/GrolGPA/ha-energyua-poweroff`
 4. Категорія: **Integration**
 5. Натисніть **Додати**, потім знайдіть "Energy-UA Power Off" та встановіть
 
