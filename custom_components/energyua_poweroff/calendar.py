@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timedelta
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.util import dt as dt_util
 
 from .api import EnergyUAPowerOffAPI
 from .const import DOMAIN, CONF_BASE_URL, CONF_GROUP, DEFAULT_BASE_URL
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -30,33 +33,41 @@ class EnergyUACalendar(CalendarEntity):
 
         events = []
         now = dt_util.now()
+        tz = dt_util.DEFAULT_TIME_ZONE
 
-        for entry in data:
+        for item in data:
             # Очікується формат:
-            # {"day": "2025-03-02", "hours": "08:00-12:00"}
+            # {"day": "2026-03-07", "hours": "07:30-09:30"}
 
             try:
-                date_str = entry["day"]
-                hours = entry["hours"]
+                date_str = item["day"]
+                hours = item["hours"]
 
                 start_str, end_str = hours.split("-")
 
-                start = dt_util.parse_datetime(
-                    f"{date_str} {start_str}"
+                start_naive = datetime.strptime(
+                    f"{date_str} {start_str.strip()}", "%Y-%m-%d %H:%M"
                 )
-                end = dt_util.parse_datetime(
-                    f"{date_str} {end_str}"
+                end_naive = datetime.strptime(
+                    f"{date_str} {end_str.strip()}", "%Y-%m-%d %H:%M"
                 )
 
-                if start and end:
-                    event = CalendarEvent(
-                        summary="Відключення електроенергії",
-                        start=start,
-                        end=end,
-                    )
-                    events.append(event)
+                start = start_naive.replace(tzinfo=tz)
+                end = end_naive.replace(tzinfo=tz)
 
-            except Exception:
+                # Якщо кінець = 00:00, це означає кінець дня (наступна доба)
+                if end <= start:
+                    end += timedelta(days=1)
+
+                event = CalendarEvent(
+                    summary="Відключення електроенергії",
+                    start=start,
+                    end=end,
+                )
+                events.append(event)
+
+            except Exception as exc:
+                _LOGGER.debug("Помилка парсингу запису %s: %s", item, exc)
                 continue
 
         self._events = events
@@ -76,5 +87,5 @@ class EnergyUACalendar(CalendarEntity):
         return [
             event
             for event in self._events
-            if event.start >= start_date and event.end <= end_date
+            if event.end > start_date and event.start < end_date
         ]
