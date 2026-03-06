@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Energy-UA Power Off Setup",
+        "description": "Enter your power outage queue (sub-queue), for example: 1.1, 2.2, 3.1, etc.",
+        "data": {
+          "base_url": "Data source URL",
+          "group": "Queue (sub-queue)"
+        },
+        "data_description": {
+          "base_url": "Base URL of the energy provider website (default — Zaporizhzhiaoblenergo)",
+          "group": "Your queue and sub-queue in X.Y format (e.g. 1.2)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This queue is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the server",
+      "unknown": "Unknown error"
+    }
+  }
+}
