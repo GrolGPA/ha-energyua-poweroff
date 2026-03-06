@@ -1,7 +1,13 @@
 import re
+import logging
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 from datetime import datetime
+
+_LOGGER = logging.getLogger(__name__)
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MONTHS_UA = {
     "січня": 1, "лютого": 2, "березня": 3, "квітня": 4,
@@ -17,7 +23,7 @@ class EnergyUAPowerOffAPI:
 
     def get_poweroff_schedule(self):
         url = f"{self.base_url}/outage/"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=10, verify=False)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
