@@ -1,5 +1,6 @@
 DOMAIN = "energyua_poweroff"
-DEFAULT_BASE_URL = "https://www.zoe.com.ua"
+CONF_PROVIDER = "provider"
 CONF_BASE_URL = "base_url"
 CONF_GROUP = "group"
 CONF_VERIFY_SSL = "verify_ssl"
+DEFAULT_PROVIDER = "zoe"

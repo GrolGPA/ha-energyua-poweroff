@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
+
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -21,12 +24,12 @@ class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
         self._attr_name = f"Energy-UA PowerOff ({entry.data.get(CONF_GROUP)})"
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_calendar"
 
-    def _build_events(self):
+    def _build_events(self) -> list[CalendarEvent]:
         data = self.coordinator.data
         if not data:
             return []
 
-        events = []
+        events: list[CalendarEvent] = []
         tz = dt_util.DEFAULT_TIME_ZONE
 
         for item in data:
@@ -49,12 +52,13 @@ class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
                 if end <= start:
                     end += timedelta(days=1)
 
-                event = CalendarEvent(
-                    summary="Відключення електроенергії",
-                    start=start,
-                    end=end,
+                events.append(
+                    CalendarEvent(
+                        summary="Відключення електроенергії",
+                        start=start,
+                        end=end,
+                    )
                 )
-                events.append(event)
             except Exception as exc:
                 _LOGGER.debug("Помилка парсингу запису %s: %s", item, exc)
                 continue
@@ -62,7 +66,7 @@ class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
         return events
 
     @property
-    def event(self):
+    def event(self) -> CalendarEvent | None:
         now = dt_util.now()
         future_events = [e for e in self._build_events() if e.start > now]
         if future_events:
@@ -74,5 +78,4 @@ class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
             event
             for event in self._build_events()
             if event.end > start_date and event.start < end_date
-        ]
         ]
