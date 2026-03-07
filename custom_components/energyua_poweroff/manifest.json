@@ -1,9 +1,9 @@
 {
   "domain": "energyua_poweroff",
   "name": "Energy-UA Power Off",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "config_flow": true,
-  "documentation": "https://www.zoe.com.ua/outage/",
+  "documentation": "https://github.com/GrolGPA/ha-energyua-poweroff",
   "requirements": ["beautifulsoup4", "requests"],
   "iot_class": "cloud_polling",
   "codeowners": ["gpolbox@gmail.com"]

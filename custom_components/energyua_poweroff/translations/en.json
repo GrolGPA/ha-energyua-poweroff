@@ -2,14 +2,21 @@
   "config": {
     "step": {
       "user": {
-        "title": "Energy-UA Power Off Setup",
+        "title": "Choose provider",
+        "description": "Select your distribution system operator (oblenergo).",
+        "data": {
+          "provider": "Provider"
+        }
+      },
+      "details": {
+        "title": "Queue settings",
         "description": "Enter your power outage queue (sub-queue), for example: 1.1, 2.2, 3.1, etc.",
         "data": {
           "base_url": "Data source URL",
           "group": "Queue (sub-queue)"
         },
         "data_description": {
-          "base_url": "Base URL of the energy provider website (default — Zaporizhzhiaoblenergo)",
+          "base_url": "Base URL of the energy provider website (usually no need to change)",
           "group": "Your queue and sub-queue in X.Y format (e.g. 1.2)"
         }
       }
