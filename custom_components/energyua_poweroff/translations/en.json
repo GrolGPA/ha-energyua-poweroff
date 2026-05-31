@@ -6,11 +6,13 @@
         "description": "Enter your power outage queue (sub-queue), for example: 1.1, 2.2, 3.1, etc.",
         "data": {
           "base_url": "Data source URL",
-          "group": "Queue (sub-queue)"
+          "group": "Queue (sub-queue)",
+          "verify_ssl": "Verify SSL certificate"
         },
         "data_description": {
           "base_url": "Base URL of the energy provider website (default — Zaporizhzhiaoblenergo)",
-          "group": "Your queue and sub-queue in X.Y format (e.g. 1.2)"
+          "group": "Your queue and sub-queue in X.Y format (e.g. 1.2)",
+          "verify_ssl": "Disable if the energy provider website has SSL certificate issues (disabled by default)"
         }
       }
     },

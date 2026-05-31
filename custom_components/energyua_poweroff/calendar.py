@@ -1,44 +1,35 @@
 import logging
 from datetime import datetime, timedelta
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .api import EnergyUAPowerOffAPI
-from .const import DOMAIN, CONF_BASE_URL, CONF_GROUP, DEFAULT_BASE_URL
+from .const import DOMAIN, CONF_GROUP
+from .coordinator import EnergyUAPowerOffCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    base_url = entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
-    group = entry.data.get(CONF_GROUP)
-
-    api = EnergyUAPowerOffAPI(base_url, group)
-
-    async_add_entities([EnergyUACalendar(api, entry)], True)
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([EnergyUACalendar(coordinator, entry)])
 
 
-class EnergyUACalendar(CalendarEntity):
-    def __init__(self, api, entry):
-        self.api = api
+class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
+    def __init__(self, coordinator: EnergyUAPowerOffCoordinator, entry):
+        super().__init__(coordinator)
         self._attr_name = f"Energy-UA PowerOff ({entry.data.get(CONF_GROUP)})"
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_calendar"
-        self._events = []
-        self._next_event = None
 
-    async def async_update(self):
-        data = await self.hass.async_add_executor_job(
-            self.api.get_poweroff_schedule
-        )
+    def _build_events(self):
+        data = self.coordinator.data
+        if not data:
+            return []
 
         events = []
-        now = dt_util.now()
         tz = dt_util.DEFAULT_TIME_ZONE
 
         for item in data:
-            # Очікується формат:
-            # {"day": "2026-03-07", "hours": "07:30-09:30"}
-
             try:
                 date_str = item["day"]
                 hours = item["hours"]
@@ -55,7 +46,6 @@ class EnergyUACalendar(CalendarEntity):
                 start = start_naive.replace(tzinfo=tz)
                 end = end_naive.replace(tzinfo=tz)
 
-                # Якщо кінець = 00:00, це означає кінець дня (наступна доба)
                 if end <= start:
                     end += timedelta(days=1)
 
@@ -65,27 +55,24 @@ class EnergyUACalendar(CalendarEntity):
                     end=end,
                 )
                 events.append(event)
-
             except Exception as exc:
                 _LOGGER.debug("Помилка парсингу запису %s: %s", item, exc)
                 continue
 
-        self._events = events
-
-        # Визначаємо наступну подію
-        future_events = [e for e in events if e.start > now]
-        if future_events:
-            self._next_event = sorted(future_events, key=lambda x: x.start)[0]
-        else:
-            self._next_event = None
+        return events
 
     @property
     def event(self):
-        return self._next_event
+        now = dt_util.now()
+        future_events = [e for e in self._build_events() if e.start > now]
+        if future_events:
+            return sorted(future_events, key=lambda x: x.start)[0]
+        return None
 
     async def async_get_events(self, hass, start_date, end_date):
         return [
             event
-            for event in self._events
+            for event in self._build_events()
             if event.end > start_date and event.start < end_date
+        ]
         ]

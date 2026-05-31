@@ -7,8 +7,6 @@ from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 MONTHS_UA = {
     "січня": 1, "лютого": 2, "березня": 3, "квітня": 4,
     "травня": 5, "червня": 6, "липня": 7, "серпня": 8,
@@ -17,13 +15,16 @@ MONTHS_UA = {
 
 
 class EnergyUAPowerOffAPI:
-    def __init__(self, base_url: str, group: str):
+    def __init__(self, base_url: str, group: str, verify_ssl: bool = False):
         self.base_url = base_url.rstrip('/')
         self.group = group
+        self.verify_ssl = verify_ssl
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def get_poweroff_schedule(self):
         url = f"{self.base_url}/outage/"
-        response = requests.get(url, timeout=10, verify=False)
+        response = requests.get(url, timeout=10, verify=self.verify_ssl)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 

@@ -1,6 +1,6 @@
 import voluptuous as vol
 from homeassistant import config_entries
-from .const import DOMAIN, CONF_BASE_URL, CONF_GROUP, DEFAULT_BASE_URL
+from .const import DOMAIN, CONF_BASE_URL, CONF_GROUP, CONF_VERIFY_SSL, DEFAULT_BASE_URL
 
 
 class EnergyUAPowerOffFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -24,6 +24,7 @@ class EnergyUAPowerOffFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema({
             vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
             vol.Required(CONF_GROUP): str,
+            vol.Optional(CONF_VERIFY_SSL, default=False): bool,
         })
 
         return self.async_show_form(
