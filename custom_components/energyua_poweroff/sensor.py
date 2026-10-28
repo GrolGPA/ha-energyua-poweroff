@@ -1,12 +1,10 @@
-import logging
+from __future__ import annotations
 
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_GROUP
 from .coordinator import EnergyUAPowerOffCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):

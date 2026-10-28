@@ -4,7 +4,7 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import EnergyUAPowerOffAPI
+from .providers import BaseProvider
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ UPDATE_INTERVAL = timedelta(hours=2)
 
 
 class EnergyUAPowerOffCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass: HomeAssistant, api: EnergyUAPowerOffAPI) -> None:
+    def __init__(self, hass: HomeAssistant, api: BaseProvider) -> None:
         super().__init__(
             hass,
             _LOGGER,
