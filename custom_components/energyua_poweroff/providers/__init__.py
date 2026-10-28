@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date
 from typing import Any
 
 import requests
@@ -18,6 +18,12 @@ MONTHS_UA = {
     "травня": 5, "червня": 6, "липня": 7, "серпня": 8,
     "вересня": 9, "жовтня": 10, "листопада": 11, "грудня": 12,
 }
+
+_TITLE_DATE_RE = re.compile(
+    r"(\d{1,2})\s+(" + "|".join(MONTHS_UA) + r")", re.IGNORECASE
+)
+
+_TIME_RANGE = r"\d{1,2}:\d{2}\s*[–\-]\s*\d{1,2}:\d{2}"
 
 
 class BaseProvider(ABC):
@@ -56,23 +62,39 @@ class BaseProvider(ABC):
         return BeautifulSoup(response.text, "html.parser")
 
     @staticmethod
-    def _extract_date_from_title(title: str) -> str | None:
+    def _resolve_date(
+        day: int, month: int, year: int | None = None, today: date | None = None
+    ) -> str | None:
+        """Build 'YYYY-MM-DD'; a missing year is the one closest to *today*.
+
+        This keeps '1 СІЧНЯ' in a December schedule in the next year (and the
+        opposite in January). Returns None for impossible dates.
+        """
+        today = today or date.today()
+        candidates = [year] if year is not None else [
+            today.year - 1, today.year, today.year + 1
+        ]
+
+        best: date | None = None
+        for candidate in candidates:
+            try:
+                resolved = date(candidate, month, day)
+            except ValueError:
+                continue
+            if best is None or abs((resolved - today).days) < abs((best - today).days):
+                best = resolved
+        return best.isoformat() if best else None
+
+    @classmethod
+    def _extract_date_from_title(
+        cls, title: str, today: date | None = None
+    ) -> str | None:
         """Extract 'YYYY-MM-DD' from a Ukrainian title like '7 БЕРЕЗНЯ'."""
-        match = re.search(
-            r"(\d{1,2})\s+"
-            r"(СІЧНЯ|ЛЮТОГО|БЕРЕЗНЯ|КВІТНЯ|ТРАВНЯ|ЧЕРВНЯ|"
-            r"ЛИПНЯ|СЕРПНЯ|ВЕРЕСНЯ|ЖОВТНЯ|ЛИСТОПАДА|ГРУДНЯ)",
-            title,
-            re.IGNORECASE,
-        )
+        match = _TITLE_DATE_RE.search(title)
         if not match:
             return None
-        day = int(match.group(1))
-        month = MONTHS_UA.get(match.group(2).lower())
-        if not month:
-            return None
-        year = datetime.now().year
-        return f"{year}-{month:02d}-{day:02d}"
+        month = MONTHS_UA[match.group(2).lower()]
+        return cls._resolve_date(int(match.group(1)), month, today=today)
 
     @staticmethod
     def _extract_hours_for_group(content: str, group: str) -> list[str]:
@@ -81,21 +103,22 @@ class BaseProvider(ABC):
         Handles formats like:
             1.2: 09:00 – 14:00
             3.1: 00:00 – 00:30, 07:30 – 11:00
-        Returns a list of normalised "HH:MM-HH:MM" strings.
+        Every occurrence of the group is collected; the lookbehind prevents
+        '1.2' from matching inside '11.2' or '2.1.2'.
+        Returns a list of unique normalised "HH:MM-HH:MM" strings.
         """
-        escaped = re.escape(group)
         pattern = (
-            rf"{escaped}:\s*"
-            rf"(\d{{1,2}}:\d{{2}}\s*[–\-]\s*\d{{1,2}}:\d{{2}}"
-            rf"(?:,\s*\d{{1,2}}:\d{{2}}\s*[–\-]\s*\d{{1,2}}:\d{{2}})*)"
+            rf"(?<![\d.]){re.escape(group)}:\s*"
+            rf"({_TIME_RANGE}(?:,\s*{_TIME_RANGE})*)"
         )
-        match = re.search(pattern, content)
-        if not match:
-            return []
 
-        raw = match.group(1)
-        ranges = [r.strip() for r in raw.split(",")]
-        return [re.sub(r"\s*[–\-]\s*", "-", r) for r in ranges]
+        result: list[str] = []
+        for match in re.finditer(pattern, content):
+            for raw_range in match.group(1).split(","):
+                normalised = re.sub(r"\s*[–\-]\s*", "-", raw_range.strip())
+                if normalised not in result:
+                    result.append(normalised)
+        return result
 
 
 # ---------------------------------------------------------------------------

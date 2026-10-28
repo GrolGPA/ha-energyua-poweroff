@@ -36,7 +36,7 @@ class ZOEProvider(BaseProvider):
                 continue
             seen_dates.add(date_str)
 
-            content = article.get_text()
+            content = article.get_text("\n")  # separate adjacent tags
             hours_list = self._extract_hours_for_group(content, self.group)
 
             for hours in hours_list:

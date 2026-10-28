@@ -1,7 +1,7 @@
 {
   "domain": "energyua_poweroff",
   "name": "Energy-UA Power Off",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "config_flow": true,
   "documentation": "https://github.com/GrolGPA/ha-energyua-poweroff",
   "requirements": ["beautifulsoup4", "requests"],

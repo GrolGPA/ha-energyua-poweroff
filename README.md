@@ -57,13 +57,17 @@
 
 ## Приклад автоматизації
 
+Ідентифікатор календаря містить чергу: для черги `1.2` це `calendar.energy_ua_poweroff_1_2`
+(точний `entity_id` дивіться в **Налаштування → Пристрої та служби → Сутності**).
+Календар у стані `on` під час відключення, тому його можна використовувати й як індикатор «світла немає».
+
 ```yaml
 automation:
   - alias: "Сповіщення про відключення"
     trigger:
       - platform: calendar
         event: start
-        entity_id: calendar.energy_ua_poweroff
+        entity_id: calendar.energy_ua_poweroff_1_2
         offset: "-00:30:00"
     action:
       - service: notify.mobile_app

@@ -6,6 +6,7 @@ with columns: day | hours.
 from __future__ import annotations
 
 import logging
+import re
 
 from . import BaseProvider
 
@@ -80,7 +81,7 @@ class EnergyUAProvider(BaseProvider):
                 continue
             seen_dates.add(date_str)
 
-            content = article.get_text()
+            content = article.get_text("\n")  # separate adjacent tags
             hours_list = self._extract_hours_for_group(content, self.group)
 
             for hours in hours_list:
@@ -89,25 +90,18 @@ class EnergyUAProvider(BaseProvider):
         return data
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _normalise_date(raw: str) -> str | None:
+    @classmethod
+    def _normalise_date(cls, raw: str) -> str | None:
         """Try to convert DD.MM.YYYY or DD.MM to YYYY-MM-DD."""
-        import re
-        from datetime import datetime
-
         m = re.match(r"(\d{1,2})[./](\d{1,2})(?:[./](\d{4}))?$", raw.strip())
         if not m:
             return None
-        day = int(m.group(1))
-        month = int(m.group(2))
-        year = int(m.group(3)) if m.group(3) else datetime.now().year
-        return f"{year}-{month:02d}-{day:02d}"
+        year = int(m.group(3)) if m.group(3) else None
+        return cls._resolve_date(int(m.group(1)), int(m.group(2)), year)
 
     @staticmethod
     def _split_hours(raw: str) -> list[str]:
         """Split '08:00–12:00, 18:00–22:00' into normalised ranges."""
-        import re
-
         ranges = [r.strip() for r in raw.split(",")]
         result: list[str] = []
         for r in ranges:
