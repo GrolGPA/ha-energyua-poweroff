@@ -1,7 +1,7 @@
 # Energy-UA Power Off
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/v/release/pavlo-havrikov/energyua-poweroff)](https://github.com/pavlo-havrikov/energyua-poweroff/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/GrolGPA/ha-energyua-poweroff)](https://github.com/GrolGPA/ha-energyua-poweroff/releases)
 
 Компонент для Home Assistant, який показує графік погодинних відключень електроенергії (ГПВ) з підтримкою кількох обленерго.
 
