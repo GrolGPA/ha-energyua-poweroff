@@ -1,28 +1,34 @@
 """Provider for energy-ua.info sites (Прикарпаттяобленерго, Львівобленерго, etc.).
 
-These sites use the URL pattern /cherga/{N-M} (group "N.M") and render a simple HTML table
-with columns: day | hours.
+These sites use the URL pattern /{cherga|grupa}/{N-M} (group "N.M"); the path
+segment differs per region. They render a simple HTML table with columns:
+day | hours.
 """
 from __future__ import annotations
 
 import re
 from datetime import date
 
+import requests
+
 from ..schedule import Outage
 from .base import BaseProvider
 
+# e.g. prykarpattya uses /cherga/, dnipro uses /grupa/
+PATH_SEGMENTS = ("cherga", "grupa")
+
 
 class EnergyUAProvider(BaseProvider):
-    """Scrapes {subdomain}.energy-ua.info/cherga/{N-M} — HTML table format."""
+    """Scrapes {subdomain}.energy-ua.info/{cherga|grupa}/{N-M} — HTML table format."""
 
     key = "energy_ua"
     name = "Energy-UA (energy-ua.info)"
     default_base_url = "https://prykarpattya.energy-ua.info"
 
+    _path_segment: str | None = None
+
     def get_poweroff_schedule(self) -> list[Outage]:
-        # The site expects queue "6.2" as "6-2" in the URL.
-        url = f"{self.base_url}/cherga/{self.group.replace('.', '-')}"
-        soup = self._fetch_soup(url)
+        url, soup = self._fetch_group_page()
 
         # ---- strategy 1: HTML table ----
         table = soup.find("table")
@@ -37,6 +43,28 @@ class EnergyUAProvider(BaseProvider):
         raise ValueError(
             f"Не знайдено таблицю чи записи на сторінці {url}"
         )
+
+    def _fetch_group_page(self):
+        """Fetch the group page, remembering which path segment the region uses."""
+        slug = self.group.replace(".", "-")
+        segments = (
+            [self._path_segment] if self._path_segment else list(PATH_SEGMENTS)
+        )
+        last_exc: requests.HTTPError | None = None
+        for segment in segments:
+            url = f"{self.base_url}/{segment}/{slug}"
+            try:
+                soup = self._fetch_soup(url)
+            except requests.HTTPError as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                if status not in (403, 404):
+                    raise
+                last_exc = exc
+                continue
+            self._path_segment = segment
+            return url, soup
+        assert last_exc is not None
+        raise last_exc
 
     # ------------------------------------------------------------------
     def _parse_table(self, table) -> list[Outage]:

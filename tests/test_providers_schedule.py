@@ -2,6 +2,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import pytest
+import requests
 from bs4 import BeautifulSoup
 
 from custom_components.energyua_poweroff.providers.energy_ua import EnergyUAProvider
@@ -43,6 +44,25 @@ def test_energy_ua_url_uses_dash_separated_queue():
         EnergyUAProvider("https://example.com", "6.2").get_poweroff_schedule()
 
     fetch.assert_called_once_with("https://example.com/cherga/6-2")
+
+
+def test_energy_ua_falls_back_to_grupa_path():
+    forbidden = requests.Response()
+    forbidden.status_code = 403
+    soup = BeautifulSoup(ARTICLES_HTML, "html.parser")
+    with patch(
+        "custom_components.energyua_poweroff.providers.BaseProvider._fetch_soup",
+        side_effect=[requests.HTTPError(response=forbidden), soup, soup],
+    ) as fetch:
+        provider = EnergyUAProvider("https://example.com", "6.2")
+        provider.get_poweroff_schedule()
+        provider.get_poweroff_schedule()
+
+    assert [c.args[0] for c in fetch.call_args_list] == [
+        "https://example.com/cherga/6-2",
+        "https://example.com/grupa/6-2",
+        "https://example.com/grupa/6-2",
+    ]
 
 
 def test_energy_ua_table():
