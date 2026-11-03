@@ -4,6 +4,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -29,7 +30,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     group = entry.data[CONF_GROUP]
     verify_ssl = entry.data.get(CONF_VERIFY_SSL, False)
 
-    provider = provider_cls(base_url, group, verify_ssl=verify_ssl)
+    provider = provider_cls(
+        base_url,
+        group,
+        verify_ssl=verify_ssl,
+        time_zone=dt_util.get_default_time_zone(),
+    )
 
     coordinator = EnergyUAPowerOffCoordinator(hass, provider)
     await coordinator.async_config_entry_first_refresh()

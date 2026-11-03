@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, CONF_GROUP
 from .coordinator import EnergyUAPowerOffCoordinator
-from .schedule import merge_ranges, parse_time_range
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -26,23 +21,14 @@ class EnergyUACalendar(CoordinatorEntity, CalendarEntity):
         self._events: list[CalendarEvent] = self._build_events()
 
     def _build_events(self) -> list[CalendarEvent]:
-        """Convert coordinator data into sorted, merged calendar events."""
-        ranges = []
-        tz = dt_util.get_default_time_zone()
-
-        for item in self.coordinator.data or []:
-            try:
-                ranges.append(parse_time_range(item["day"], item["hours"], tz))
-            except (KeyError, TypeError, ValueError) as exc:
-                _LOGGER.warning("Не вдалося розпарсити запис %s: %s", item, exc)
-
+        """Convert coordinator data (sorted, merged outages) into events."""
         return [
             CalendarEvent(
                 summary="Відключення електроенергії",
-                start=start,
-                end=end,
+                start=outage.start,
+                end=outage.end,
             )
-            for start, end in merge_ranges(ranges)
+            for outage in self.coordinator.data or []
         ]
 
     def _handle_coordinator_update(self) -> None:

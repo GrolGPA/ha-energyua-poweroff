@@ -1,5 +1,7 @@
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
+import pytest
 from bs4 import BeautifulSoup
 
 from custom_components.energyua_poweroff.providers.energy_ua import EnergyUAProvider
@@ -23,8 +25,8 @@ def test_zoe_adjacent_paragraphs_do_not_leak_between_groups():
     with _fetch(ARTICLES_HTML):
         schedule = ZOEProvider("https://example.com", "1.2").get_poweroff_schedule()
 
-    assert [item["hours"] for item in schedule] == ["09:00-14:00", "22:00-24:00"]
-    assert len({item["day"] for item in schedule}) == 1
+    assert [outage.hours for outage in schedule] == ["09:00-14:00", "22:00-24:00"]
+    assert len({outage.day for outage in schedule}) == 1
 
 
 def test_energy_ua_article_fallback():
@@ -33,7 +35,14 @@ def test_energy_ua_article_fallback():
             "https://example.com", "1.2"
         ).get_poweroff_schedule()
 
-    assert [item["hours"] for item in schedule] == ["09:00-14:00", "22:00-24:00"]
+    assert [outage.hours for outage in schedule] == ["09:00-14:00", "22:00-24:00"]
+
+
+def test_energy_ua_url_uses_dash_separated_queue():
+    with _fetch(ARTICLES_HTML) as fetch:
+        EnergyUAProvider("https://example.com", "6.2").get_poweroff_schedule()
+
+    fetch.assert_called_once_with("https://example.com/cherga/6-2")
 
 
 def test_energy_ua_table():
@@ -46,7 +55,42 @@ def test_energy_ua_table():
             "https://example.com", "1.2"
         ).get_poweroff_schedule()
 
-    assert schedule == [
-        {"day": "2026-03-07", "hours": "08:00-12:00"},
-        {"day": "2026-03-07", "hours": "18:00-24:00"},
+    assert [(o.day, o.hours) for o in schedule] == [
+        ("2026-03-07", "08:00-12:00"),
+        ("2026-03-07", "18:00-24:00"),
     ]
+
+
+def test_invalid_range_is_skipped():
+    html = (
+        "<table><tr><th>День</th><th>Години</th></tr>"
+        "<tr><td>07.03.2026</td><td>08:00–12:00, 25:00–26:00</td></tr></table>"
+    )
+    with _fetch(html):
+        schedule = EnergyUAProvider(
+            "https://example.com", "1.2"
+        ).get_poweroff_schedule()
+
+    assert [o.hours for o in schedule] == ["08:00-12:00"]
+
+
+def test_outages_use_provider_time_zone():
+    tz = ZoneInfo("Europe/Kyiv")
+    with _fetch(ARTICLES_HTML):
+        schedule = ZOEProvider(
+            "https://example.com", "1.2", time_zone=tz
+        ).get_poweroff_schedule()
+
+    assert all(outage.start.tzinfo is tz for outage in schedule)
+
+
+def test_registry():
+    from custom_components.energyua_poweroff.providers import (
+        get_provider,
+        get_providers,
+    )
+
+    assert set(get_providers()) == {"zoe", "energy_ua"}
+    assert get_provider("zoe") is ZOEProvider
+    with pytest.raises(KeyError):
+        get_provider("unknown")

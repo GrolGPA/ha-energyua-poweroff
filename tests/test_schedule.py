@@ -74,3 +74,23 @@ class TestMergeRanges:
 
     def test_empty(self):
         assert merge_ranges([]) == []
+
+
+class TestOutage:
+    def test_day_and_hours(self):
+        outage = parse_time_range("2026-03-07", "09:00-14:30", TZ)
+        assert outage.day == "2026-03-07"
+        assert outage.hours == "09:00-14:30"
+
+    def test_hours_at_next_midnight_is_24_00(self):
+        assert parse_time_range("2026-03-07", "22:00-24:00", TZ).hours == "22:00-24:00"
+
+    def test_hours_crossing_midnight(self):
+        assert parse_time_range("2026-03-07", "22:00-02:00", TZ).hours == "22:00-02:00"
+
+    def test_as_dict_keeps_legacy_keys(self):
+        data = parse_time_range("2026-03-07", "09:00-14:00", TZ).as_dict()
+        assert data["day"] == "2026-03-07"
+        assert data["hours"] == "09:00-14:00"
+        assert data["start"] == dt(7, 9).isoformat()
+        assert data["end"] == dt(7, 14).isoformat()

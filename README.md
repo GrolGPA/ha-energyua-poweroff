@@ -82,23 +82,25 @@ automation:
 2. Наслідуйте `BaseProvider` та реалізуйте `get_poweroff_schedule()`:
 
 ```python
-from . import BaseProvider
+from ..schedule import Outage
+from .base import BaseProvider
 
 class MyProvider(BaseProvider):
     key = "my_provider"                          # унікальний ключ
     name = "Моє Обленерго (example.com)"         # назва для UI
     default_base_url = "https://example.com"     # URL за замовчуванням
 
-    def get_poweroff_schedule(self) -> list[dict[str, str]]:
+    def get_poweroff_schedule(self) -> list[Outage]:
         soup = self._fetch_soup(f"{self.base_url}/schedule")
         # ... парсинг HTML ...
-        return [
-            {"day": "2026-03-07", "hours": "08:00-12:00"},
-        ]
+        return self._build_outages("2026-03-07", ["08:00-12:00", "18:00-24:00"])
 ```
 
-3. Зареєструйте провайдер у `providers/__init__.py` → `_load_providers()`
-4. Дані повинні відповідати контракту: `list[dict]` з ключами `"day"` (YYYY-MM-DD) та `"hours"` (HH:MM-HH:MM)
+3. Зареєструйте провайдер у `providers/__init__.py` → `PROVIDERS`
+4. Метод повинен повертати `list[Outage]` (`schedule.py`): пари `start`/`end` з часовою зоною.
+   - Створюйте їх через `self._build_outages(day, hours_list)`, де `day` — `YYYY-MM-DD`, а `hours_list` — рядки `HH:MM-HH:MM` (кінець може бути `24:00`).
+   - Для сайтів зі статтями-блоками можна використати готовий `self._parse_articles(articles)`.
+   - Об'єднання суміжних проміжків виконує координатор.
 
 ## Ліцензія
 

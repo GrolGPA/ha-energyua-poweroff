@@ -28,4 +28,4 @@ class EnergyUAPowerOffSensor(CoordinatorEntity, Entity):
     def extra_state_attributes(self):
         if self.coordinator.data is None:
             return {}
-        return {"schedule": self.coordinator.data}
+        return {"schedule": [outage.as_dict() for outage in self.coordinator.data]}
